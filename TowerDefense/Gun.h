@@ -53,7 +53,6 @@ public:
 		else
 		{
 			*deleted_ = true;
-			delete this;
 		}
 	}
 
@@ -83,18 +82,22 @@ private:
 
 	sf::Vector2f *position_ = new sf::Vector2f;
 	sf::Vector2f size_;
-	sf::Texture texture_;
+	sf::Texture *texture_;
 
 	sf::SoundBuffer *sound_buffer_ = new sf::SoundBuffer;
 	sf::Sound *shot_ = new sf::Sound;
 	
 	float *rotation_ = new float(0.F);
 	
-	Timer<float> *timer_ = new Timer<float>;
+	Timer *timer_ = new Timer;
 
 	bool *position_fixed_ = new bool(false);
 
 	std::vector<Bullet*>* bullets_ = new std::vector<Bullet*>;
+
+	float damage_;
+
+	int level_ = 1;
 
 protected:
 	// отрисовка пушки
@@ -102,18 +105,25 @@ protected:
 		sf::RenderStates states) const override
 	{
 
-		for (Bullet* const& bullet : *bullets_)
+		for (auto i = 0; i < bullets()->size(); i++)
 		{
-			target.draw(*bullet);
+			if (!bullets_->at(i)->isComplete())
+			{
+				target.draw(*(bullets_->at(i)));
+			}
+			else
+			{
+				bullets_->erase(bullets_->begin() + i);
+			}
 		}
 		
 		sf::Sprite sprite;
-		sprite.setTexture(texture_);
+		sprite.setTexture(*texture_);
 		sprite.setPosition(*position_);
-		sprite.setScale(size_.x / F(texture_.getSize().x),
-			size_.y / F(texture_.getSize().y));
-		sprite.setOrigin(F(texture_.getSize().x) / 2,
-			F(texture_.getSize().y) / 2);
+		sprite.setScale(size_.x / F(texture_->getSize().x),
+			size_.y / F(texture_->getSize().y));
+		sprite.setOrigin(F(texture_->getSize().x) / 2,
+			F(texture_->getSize().y) / 2);
 		sprite.setRotation(*rotation_);
 		target.draw(sprite);
 	}
@@ -121,28 +131,51 @@ protected:
 public:
 	
 	// конструтор для создания пушки
-	explicit Gun(const sf::Vector2f size,
+	explicit Gun(const sf::Vector2f size = {},
 		const float radius = 0, 
 		const float firing_speed_per_sec = 0,
-		const float price_upgrade = 0) :
+		const float price_upgrade = 0,
+		const float damage = 0,
+		const std::string& texture_path = "data/textures/cannon1.png") :
 		radius_(radius),
 		firing_speed_per_sec_(firing_speed_per_sec),
 		price_upgrade_(price_upgrade),
-		size_(size)
+		size_(size), texture_(new sf::Texture),
+		damage_(damage)
 	{
-		texture_.loadFromFile("data/textures/cannon1.png");
-		if(!sound_buffer_->loadFromFile("data/sounds/shot.wav"))
+		texture_->loadFromFile(texture_path);
+		if (!sound_buffer_->loadFromFile("data/sounds/shot.wav"))
 		{
 			std::cout << "Error >> Gun >> shot >> music >> not loaded" << std::endl;
 		}
 		shot_->setBuffer(*sound_buffer_);
 	}
 
+	Gun();
+
 	// геттеры и сеттеры
 
-	void setLevel(int level)
+	void setLevel(
+		const int level, 
+		const float radius = 0,
+		const float firing_speed_per_sec = 0,
+		const float damage = 0) 
 	{
-		texture_.loadFromFile("data/textures/cannon" + std::to_string(level) + "png");
+		if (!texture_->loadFromFile("data/textures/cannon" + std::to_string(level) + ".png"))
+		{
+			std::cout << "Error >> Gun >> texture >> not loaded" << std::endl;
+		}
+
+		radius_ = radius;
+		firing_speed_per_sec_ = firing_speed_per_sec;
+		damage_ = damage;
+		level_ = level;
+		
+	}
+
+	int getLevel() const
+	{
+		return level_;
 	}
 
 	void setRadius(const float radius)
@@ -185,9 +218,9 @@ public:
 		return price_upgrade_;
 	}
 
-	void setTexture(const sf::Texture& texture)
+	void setTexture(const sf::Texture& texture) const
 	{
-		texture_ = texture;
+		*texture_ = texture;
 	}
 
 	void setPosition(const sf::Vector2i position) const
@@ -231,23 +264,29 @@ public:
 		return *position_fixed_;
 	}
 
-	void shot(const Monster& monster) const
+	void shot(Monster* monster) const
 	{
 		if (timer_->milliseconds() > 1000.0F / firing_speed_per_sec_)
 		{
 			bullets_->push_back(new Bullet(bullet_speed_,
-				sf::Vector2f((monster.getPosition().x  - position_->x)
-					/ bullet_speed_, (monster.getPosition().y - position_->y)
+				sf::Vector2f((monster->getPosition().x  - position_->x)
+					/ bullet_speed_, (monster->getPosition().y - position_->y)
 					/ bullet_speed_),
 				*rotation_, *position_));
 			shot_->play();
 			timer_->clear();
+			monster->damage(damage_);
 		}
 	}
 
 	std::vector<Bullet*>* bullets() const
 	{
 		return bullets_;
+	}
+	
+	void damageMonster(Monster *monster) const
+	{
+		monster->damage(damage_);
 	}
 
 };

@@ -236,7 +236,7 @@ public:
 							if (fabs(monsters_->at(i).getPosition().x - gun.getPosition().x) < gun.getRadius() &&
 								fabs(monsters_->at(i).getPosition().y - gun.getPosition().y) < gun.getRadius())
 							{
-								gun.setRotation(atan2(monsters_->at(i).getPosition().y - gun.getPosition().y,
+								gun.setRotation(atan2f(monsters_->at(i).getPosition().y - gun.getPosition().y,
 									monsters_->at(i).getPosition().x - gun.getPosition().x) * 180.F / pi);
 								gun.shot(&monsters_->at(i));
 								break;

@@ -202,7 +202,7 @@ int main()
 
 	int hearts = 3;
 	world.onMonsterOut(
-		[&](Monster monster)
+		[&](Monster /*monster*/)
 		{
 			const std::string n = std::to_string(hearts - 1);
 			hearts--;
